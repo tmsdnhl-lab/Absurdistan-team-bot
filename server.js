@@ -82,6 +82,35 @@ app.post('/api/schedule-post', (req, res) => {
   });
 });
 
+// New: Immediate publish endpoint
+// POST /api/publish
+// Body: { "message": "text", "imageUrl": "optional image url" }
+app.post('/api/publish', async (req, res) => {
+  const { message, imageUrl } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  if (!process.env.FACEBOOK_PAGE_ID || !process.env.FACEBOOK_ACCESS_TOKEN) {
+    return res.status(500).json({ error: 'Facebook configuration missing in environment variables' });
+  }
+
+  try {
+    // publishPost returns Facebook response or undefined on error
+    const result = await bot.publishPost(message, imageUrl);
+
+    if (!result) {
+      return res.status(500).json({ success: false, error: 'Failed to publish post (see server logs)' });
+    }
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    console.error('❌ Error in /api/publish:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`
@@ -89,7 +118,7 @@ app.listen(PORT, () => {
 ║  🎵 ABSURDISTAN TEAM BOT          ║
 ║  ✅ Server běží na portu ${PORT}      ║
 ║  🌐 http://localhost:${PORT}         ║
-╚═══════════════════════════════════╝
+╚══════════════════════════════════╝
 `);
 });
 
